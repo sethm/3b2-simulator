@@ -55,6 +55,13 @@ computer systems and run unmodified 3B2 software:
     - 630 MB SCSI disk
     - 120 MB SCSI QIC tape
 
+## Usage
+
+**TODO:** Documentation about usage will be placed here, or on the
+GitHub wiki for this project with a pointer here. I do not consider
+this simulator ready for wide distribution because it is not yet
+propertly documented.
+
 ## Acknowledgements
 
 The simulator framework used to control the 3B2 simulator, known as SCP
