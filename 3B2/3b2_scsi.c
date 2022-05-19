@@ -61,7 +61,7 @@ t_bool   ha_conf = FALSE;
 static struct scsi_dev_t ha_tab[] = {
     HA_DISK(SD155),
     HA_DISK(SD300),
-    HA_DISK(SD322),
+    HA_DISK(SD327),
     HA_DISK(SD630),
     HA_TAPE(ST120)
 };
@@ -93,8 +93,8 @@ MTAB ha_mod[] = {
       &ha_set_type, NULL, NULL, "Set 155MB Disk Type" },
     { MTAB_XTD|MTAB_VUN, SD300_DTYPE, NULL, "SD300",
       &ha_set_type, NULL, NULL, "Set 300MB Disk Type" },
-    { MTAB_XTD|MTAB_VUN, SD322_DTYPE, NULL, "SD322",
-      &ha_set_type, NULL, NULL, "Set 322MB Disk Type" },
+    { MTAB_XTD|MTAB_VUN, SD327_DTYPE, NULL, "SD327",
+      &ha_set_type, NULL, NULL, "Set 327MB Disk Type" },
     { MTAB_XTD|MTAB_VUN, SD630_DTYPE, NULL, "SD630",
       &ha_set_type, NULL, NULL, "Set 630MB Disk Type" },
     { MTAB_XTD|MTAB_VUN, ST120_DTYPE, NULL, "ST120",

@@ -157,15 +157,15 @@
 #define SD300_DESC       "KS23483"
 #define SD300_REV        "0000"
 
-/* AT&T 322 MB Hard Disk (43 sec/t, 9 hd, 1514 cyl) */
-#define SD322_DTYPE      2
-#define SD322_PQUAL      0x00
-#define SD322_SCSI       1
-#define SD322_BLK        512
-#define SD322_LBN        629760
-#define SD322_MANU       "AT&T"
-#define SD322_DESC       "KS23483"
-#define SD322_REV        "0000"
+/* AT&T 327 MB Hard Disk (46 sec/t, 9 hd, 1547 cyl) */
+#define SD327_DTYPE      2
+#define SD327_PQUAL      0x00
+#define SD327_SCSI       1
+#define SD327_BLK        512
+#define SD327_LBN        640458
+#define SD327_MANU       "AT&T"
+#define SD327_DESC       "KS23483"
+#define SD327_REV        "0000"
 
 /* AT&T 630 MB Hard Disk (56 sec/t, 16 hd, 1447 cyl) */
 #define SD630_DTYPE      3

@@ -1,20 +1,70 @@
-AT&T 3B2/400 and 3B2/700 Simulator
-==================================
+# AT&T 3B2/400 and 3B2/700 Simulator
 
-About
------
-This is an AT&T 3B2/400 and 3B2/700 simulator.
+## About
 
-Acknowledgements
-----------------
+This is an AT&T 3B2/400 and 3B2/700 simulator. It can simulate the following
+computer systems and run unmodified 3B2 software:
+
+### 3B2/400
+
+![3B2/400](https://archives.loomcom.com/3b2/images/3b2_400.png)
+
+3B2 Version 2 system with the following components avaialble:
+
+ - 3B2 Model 400 System Board with 1 MB, 2 MB, or 4 MB RAM
+ - WE32100 CPU at 10MHz (CPU)
+ - WE32101 MMU (MMU)
+ - WE32106 Math Accelerator (MAU)
+ - PD8253 Interval Timer (TMR)
+ - AM9517 DMA controller (DMAC)
+ - SCN2681A Integrated DUART (IU)
+ - TMS2793 Integrated Floppy Controller (IFLOPPY)
+ - uPD7261A Integrated MFM Fixed Disk Controller (IDISK)
+    - 30 MB winchester disk
+    - 72 MB winchester disk
+    - 161 MB winchester disk
+ - Non-Volatile Memory (NVRAM)
+ - MM58174A Time Of Day Clock (TOD)
+ - CM195A Ethernet Network Interface (NI)
+ - CM195B 4-port Serial MUX (PORTS)
+ - CM195H Cartridge Tape Controller (CTC)
+    - 23 MB streaming QIC tape
+
+### 3B2/700
+
+![3B2/700](https://archives.loomcom.com/3b2/images/3b2_700.png)
+
+3B2 Version 3 system with the following components avaialble:
+
+ - 3B2 Model 700 System Board (CM518B) with up to 64 MB of RAM
+ - WE32200 CPU at 18MHz (CPU)
+ - WE32201 MMU (MMU)
+ - WE32206 Math Accelerator (MAU)
+ - PD82C54 Interval Timer (TMR)
+ - AM9517 DMA controller (DMAC)
+ - SCN2681A Integrated DUART (IU)
+ - TMS2793 Integrated Floppy Controller (IFLOPPY)
+ - Non-Volatile Memory (NVRAM)
+ - MM58274C Time Of Day Clock (TOD)
+ - CM195A Ethernet Network Interface (NI)
+ - CM195B 4-port Serial MUX (PORTS)
+ - CM195W SCSI Controller Card (SCSI)
+    - 155 MB SCSI disk
+    - 300 MB SCSI disk
+    - 327 MB SCSI disk
+    - 630 MB SCSI disk
+    - 120 MB SCSI QIC tape
+
+## Acknowledgements
+
 The simulator framework used to control the 3B2 simulator, known as SCP
 ("Simulator Control Program"), is based on the SIMH project, originally written
 by Robert M. Supnik. Many people have contributed to the SIMH project, and
 I wish to thank them all for their work. The 3B2 simulator in its current
 form would not be possible without them.
 
-Copyright
----------
+## Copyright
+
 Portions of this code are Copyrighted by the following authors:
 
   - J. David Bryan
@@ -29,8 +79,8 @@ Portions of this code are Copyrighted by the following authors:
 
 Copyright is acknowledged in each contributed file.
 
-License
--------
+## License
+
 Please see the license statement included in each source code file.
 
 Unless otherwise specified, the following license applies:
