@@ -503,7 +503,7 @@ void scsi_mode_sel10(SCSI_BUS * bus, uint8 * data, uint32 len)
         scsi_set_phase(bus, SCSI_DATO); /* data out phase next */
         scsi_set_req(bus);             /* request data */
     } else if (bus->phase == SCSI_DATO) {
-        scsi_debug_cmd(bus, "Mode Select(6) - DATO\n");
+        scsi_debug_cmd(bus, "Mode Select(10) - DATO\n");
         /* Not currently implemented so just return
            good status for now */
         scsi_status(bus, STS_OK, KEY_OK, ASC_OK);
@@ -770,7 +770,7 @@ void scsi_read6_tape(SCSI_BUS * bus, uint8 * data, uint32 len)
 {
     UNIT *uptr = bus->dev[bus->target];
     SCSI_DEV *dev = (SCSI_DEV *) uptr->up7;
-    t_seccnt sects, sectsread;
+    t_seccnt blks, bread, btotal;
     t_stat r;
     uint32 offset = 0;
     uint32 i;
@@ -780,69 +780,46 @@ void scsi_read6_tape(SCSI_BUS * bus, uint8 * data, uint32 len)
         return;
     }
 
-    sects = GETW(data, 3) | (data[2] << 16);
-    sectsread = 0;
+    blks = GETW(data, 3) | (data[2] << 16);
+    bread = btotal = 0;
 
-    if (sects == 0) {                  /* no data to read */
+    if (blks == 0) {                  /* no data to read */
         scsi_status(bus, STS_OK, KEY_OK, ASC_OK);
         return;
     }
 
-    scsi_debug_cmd(bus, "Read(6) blks %d fixed %d\n", sects, (data[1] & 0x1));
+    scsi_debug_cmd(bus, "Read(6) blks %d fixed %d\n", blks, (data[1] & 0x1));
 
     if (uptr->flags & UNIT_ATT) {
         if (data[1] & 0x1) {
             scsi_debug_cmd(bus, "QIC in fixed block mode\n");
-            for (i = 0; i < sects; i++) {
-                r = sim_tape_rdrecf(uptr, &bus->buf[offset], &sectsread, dev->block_size);
-                if (r == MTSE_INVRL) {
-                    if ((data[1] & 0x2) && (dev->block_size == 0)) { /* SILI set */
-                        scsi_debug_cmd(bus, "SILI set\n");
-                    } else {
-                        scsi_debug_cmd(bus, "SILI not set - check condition\n");
-                        scsi_status(bus, STS_CHK, (KEY_OK | KEY_M_ILI), ASC_OK);
-                        return;
-                    }
-                    break;
-                } else if ((r == MTSE_OK) && (sectsread < sects)) { /* underlength condition */
-                    scsi_debug_cmd(bus, "Underlength\n");
-                    if (data[1] & 0x2) {
-                        scsi_debug_cmd(bus, "SILI set\n");
-                    } else {
-                        scsi_debug_cmd(bus, "SILI not set - check condition\n");
-                        scsi_status_deferred(bus, STS_CHK, (KEY_OK | KEY_M_ILI), ASC_OK);
-                        bus->sense_info = (sects - sectsread);
-                    }
-                    break;
-                } else if (r == MTSE_TMK) {
-                    scsi_debug_cmd(bus, "Tape Mark encountered\n");
-                    if (data[1] & 0x2) {
-                        scsi_debug_cmd(bus, "SILI set\n");
-                    } else {
-                        scsi_debug_cmd(bus, "SILI not set - check condition\n");
-                        scsi_status_deferred(bus, STS_CHK, (KEY_OK | KEY_M_ILI), ASC_OK);
-                        bus->sense_info = (sects - sectsread);
-                    }
-                    break;
-                } else {
-                    scsi_debug_cmd(bus, "Read tape blk %d, read %d, r = %d, offset=0x%x\n",
-                                   sects, sectsread, r, offset);
+            for (i = 0; i < blks; i++) {
+                r = sim_tape_rdrecf(uptr, &bus->buf[offset], &bread, dev->block_size);
+                scsi_debug_cmd(bus, "Read tape blk %d, read %d, r = %d\n",
+                               blks, bread, r);
+                if (r == MTSE_OK) {
+                    scsi_debug_cmd(bus, "Read Tape: OK\n");
                     offset += dev->block_size;
+                    btotal++;
+                } else {
+                    scsi_debug_cmd(bus, "Read Tape: Not OK.\n");
+                    scsi_tape_status(bus, r);
+                    scsi_status(bus, bus->status, bus->sense_key, bus->sense_code);
+                    return;
                 }
             }
-            sectsread = (sects * dev->block_size);
         } else {
             scsi_debug_cmd(bus, "QIC not in fixed block mode, invalid command\n");
             scsi_status(bus, STS_CHK, KEY_ILLREQ|KEY_M_ILI, ASC_INVCDB);
             return;
         }
     } else {
-        memset(&bus->buf[0], 0, (sects * dev->block_size));
-        sectsread = (sects * dev->block_size);
+        memset(&bus->buf[0], 0, (blks * dev->block_size));
+        btotal = 0;
     }
 
-    if (sectsread > 0) {
-        bus->buf_b = sectsread;
+    if (btotal > 0) {
+        bus->buf_b = btotal * dev->block_size;
         scsi_set_phase(bus, SCSI_DATI); /* data in phase next */
     } else {
         bus->buf[bus->buf_b++] = bus->status;   /* status code */
@@ -1085,7 +1062,7 @@ void scsi_space(SCSI_BUS * bus, uint8 * data, uint32 len)
     t_seccnt sects;
     t_stat r = 0;
 
-    code = data[1] & 0x7;
+    code = data[1] & 0x3;
     sects = GETW(data, 3) | (data[2] << 16);
 
     scsi_debug_cmd(bus, "Space %d %s\n", sects, ((code == 0) ? "records" : "files"));
@@ -1106,6 +1083,10 @@ void scsi_space(SCSI_BUS * bus, uint8 * data, uint32 len)
             r = sim_tape_spfiler(uptr, sects, &skipped);
         } else                         /* forwards */
             r = sim_tape_spfilef(uptr, sects, &skipped);
+        break;
+
+    default:
+        scsi_debug_cmd(bus, "Space: code %d not supported\n", code);
         break;
     }
 
