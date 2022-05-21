@@ -84,9 +84,6 @@
 #define NI_QPOLL_FAST          100
 #define NI_QPOLL_SLOW          50000
 
-#define NI_PUMP_CRC1           0xfab1057c
-#define NI_PUMP_CRC2           0xf6744bed
-
 #define EIG_TABLE_SIZE         40
 #define PKT_HEADER_LEN_OFFSET  EIG_TABLE_SIZE
 #define PKT_START_OFFSET       (PKT_HEADER_LEN_OFFSET + 4)

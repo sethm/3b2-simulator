@@ -111,10 +111,9 @@ static void ni_disable();
 static void ni_cmd(uint8 slot, cio_entry *rentry, uint8 *rapp_data, t_bool is_exp);
 
 /*
- * When the NI card is pumped, its CRC depends on what slot it is
- * installed in and what version of driver has been installed.
+ * A list of pumped code CRCs that will cause Force Function Call to
+ * respond with "Test Passed". Must be null-terminated.
  */
-#define NI_DIAG_CRCS_LEN 7
 static const uint32 NI_DIAG_CRCS[] = {
     0x795268a4,
     0xfab1057c,
@@ -123,6 +122,23 @@ static const uint32 NI_DIAG_CRCS[] = {
     0x267b19a0,
     0x123f36c0,
     0xc04ca0ab,
+    0x96d0506e, /* Rev 3 NI, SVR 3.2.3 */
+    0x9d3fafde, /* Rev 3 NI, SVR 3.2.3 */
+    0,
+};
+
+/*
+ * A list of pumped code CRCs that will cause the sysgen routine to
+ * respond with a full completion request instead of an express
+ * completion request. Must be null-terminated.
+ */
+static const uint32 NI_PUMP_CRCS[] = {
+    0xfab1057c, /* Rev 2 NI, SVR 3.x */
+    0xf6744bed, /* Rev 2 NI, SVR 3.x */
+    0x96d0506e, /* Rev 3 NI, SVR 3.2.3 */
+    0x9d3fafde, /* Rev 3 NI, SVR 3.2.3 */
+    0x3553230a, /* Rev 3 NI, SVR 3.2.3 */
+    0,
 };
 
 /*
@@ -336,7 +352,7 @@ static void ni_cmd(uint8 slot, cio_entry *rentry, uint8 *rapp_data, t_bool is_ex
         /* If the currently running program is a diagnostics program,
          * we are expected to write results into memory at address
          * 0x200f000 */
-        for (i = 0; i < NI_DIAG_CRCS_LEN; i++) {
+        for (i = 0; NI_DIAG_CRCS[i] != 0; i++) {
             if (ni.crc == NI_DIAG_CRCS[i]) {
                 pwrite_h(0x200f000, 0x1, BUS_PER);   /* Test success */
                 pwrite_h(0x200f002, 0x0, BUS_PER);   /* Test Number */
@@ -591,6 +607,8 @@ t_stat ni_show_filters(FILE* st, UNIT* uptr, int32 val, CONST void* desc)
 
 void ni_sysgen(uint8 slot)
 {
+    int i;
+    t_bool pumped = FALSE;
     cio_entry cqe = {0};
     uint8 app_data[4] = {0};
 
@@ -606,10 +624,15 @@ void ni_sysgen(uint8 slot)
     /* If the card has been successfully pumped, then we respond with
      * a full completion queue entry.  Otherwise, an express entry is
      * used. */
-    if (ni.crc == NI_PUMP_CRC1 ||
-        ni.crc == NI_PUMP_CRC2) {
-        cio_cqueue(slot, CIO_STAT, NIQESIZE, &cqe, app_data);
-    } else {
+    for (i = 0; NI_PUMP_CRCS[i] != 0; i++) {
+        if (NI_PUMP_CRCS[i] == ni.crc) {
+            cio_cqueue(slot, CIO_STAT, NIQESIZE, &cqe, app_data);
+            pumped = TRUE;
+            break;
+        }
+    }
+
+    if (!pumped) {
         cio_cexpress(slot, NIQESIZE, &cqe, app_data);
     }
 
