@@ -36,6 +36,7 @@
 /* CIO Opcodes */
 #define HA_BOOT        0x0a
 #define HA_READ_BLK    0x0b
+#define HA_WRITE_BLK   0x0c
 #define HA_CNTRL       0x20
 #define HA_VERS        0x40
 #define HA_DL_EEDT     0x42

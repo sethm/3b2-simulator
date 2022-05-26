@@ -121,7 +121,7 @@ extern int32 tmxr_poll;
 #if defined(REV3)
 /* Fault Register */
 
-#define FLT_MSK         0xfffffff0
+#define FLT_MSK         0xffffff00
 #define MEM_EQP         0x4
 #define MEM_4M          0x2
 #define MEM_16M         0x3

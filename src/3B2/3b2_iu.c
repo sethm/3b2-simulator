@@ -899,12 +899,14 @@ void iu_write(uint32 pa, uint32 val, size_t size)
         iu_state.opcr = bval;
         break;
     case SOPR:
+#if defined (REV2)
         /* Bit 2 of the IU output register is used as a soft power
          * switch. When set, the machine will power down
          * immediately. */
         if (bval & IU_KILLPWR) {
             stop_reason = STOP_POWER;
         }
+#endif
         break;
     case ROPR:
         break;

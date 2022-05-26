@@ -575,10 +575,6 @@ static void ha_read_block_disk(UNIT *uptr, uint32 addr, uint8 tc, uint32 lba)
     uint8 buf[HA_BLKSZ];
     uint32 i;
 
-    sim_debug(HA_TRACE, &ha_dev,
-              "[ha_read_block_disk] Block translated from LBA 0x%X to PBA 0x%X\n",
-              lba, lba);
-
     r = sim_disk_rdsect(uptr, lba, buf, &sectsread, 1);
 
     if (r != SCPE_OK) {
@@ -596,6 +592,33 @@ static void ha_read_block_disk(UNIT *uptr, uint32 addr, uint8 tc, uint32 lba)
     sim_debug(HA_TRACE, &ha_dev,
               "[ha_read_block_disk] Transferred 512 bytes to 0x%08x\n",
               addr);
+
+    HA_STAT(tc, HA_GOOD, CIO_SUCCESS);
+
+    ha_state.ts[tc].rep.addr = addr;
+    ha_state.ts[tc].rep.len = HA_BLKSZ;
+}
+
+static void ha_write_block_disk(UNIT *uptr, uint32 addr, uint8 tc, uint32 lba)
+{
+    t_seccnt sectswritten;
+    t_stat r;
+    uint8 buf[HA_BLKSZ];
+    uint32 i;
+
+    for (i = 0 ; i < HA_BLKSZ; i++) {
+        buf[i] = pread_b(addr + i, BUS_PER);
+    }
+
+    r = sim_disk_wrsect(uptr, lba, buf, &sectswritten, 1);
+
+    if (r != SCPE_OK) {
+        sim_debug(HA_TRACE, &ha_dev,
+                  "[ha_write_block_disk] Could not write block %d\n",
+                  lba);
+        HA_STAT(tc, HA_CKCON, CIO_SUCCESS);
+        return;
+    }
 
     HA_STAT(tc, HA_GOOD, CIO_SUCCESS);
 
@@ -906,22 +929,22 @@ static void ha_cmd(uint8 op, uint8 subdev, uint32 addr, int32 len, t_bool expres
                   subdev, tc, pread_w(addr, BUS_PER), pread_w(addr + 4, BUS_PER));
 
         sim_debug(HA_TRACE, &ha_dev,
-                  "[boot_next]    addr = %08x\n",
+                  "[ha_read_blk]    addr = %08x\n",
                   addr);
         sim_debug(HA_TRACE, &ha_dev,
-                  "[boot_next]    %08x = %08x\n",
+                  "[ha_read_blk]    %08x = %08x\n",
                   addr, pread_w(addr, BUS_PER));
         sim_debug(HA_TRACE, &ha_dev,
-                  "[boot_next]    %08x = %08x\n",
+                  "[ha_read_blk]    %08x = %08x\n",
                   addr + 4, pread_w(addr + 4, BUS_PER));
         sim_debug(HA_TRACE, &ha_dev,
-                  "[boot_next]    %08x = %08x\n",
+                  "[ha_read_blk]    %08x = %08x\n",
                   addr + 8, pread_w(addr + 8, BUS_PER));
         sim_debug(HA_TRACE, &ha_dev,
-                  "[boot_next]    %08x = %08x\n",
+                  "[ha_read_blk]    %08x = %08x\n",
                   addr + 12, pread_w(addr + 12, BUS_PER));
         sim_debug(HA_TRACE, &ha_dev,
-                  "[boot_next]    %08x = %08x\n",
+                  "[ha_read_blik]    %08x = %08x\n",
                   addr + 16, pread_w(addr + 16, BUS_PER));
 
 
@@ -960,6 +983,56 @@ static void ha_cmd(uint8 op, uint8 subdev, uint32 addr, int32 len, t_bool expres
         ha_state.ts[tc].rep.status = CIO_SUCCESS;
         sim_activate_abs(cio_unit, 1000);
 
+        break;
+    case HA_WRITE_BLK:
+        tc = ha_subdev_tab[subdev & 7];
+        ha_cmd_prep(tc, op, subdev, express);
+
+        sim_debug(HA_TRACE, &ha_dev,
+                  "[ha_cmd] SUBDEV %d TARGET %d WRITE BLOCK (BLOCK 0x%08x FROM ADDR 0x%08x)\n",
+                  subdev, tc, pread_w(addr, BUS_PER), pread_w(addr + 4, BUS_PER));
+
+        sim_debug(HA_TRACE, &ha_dev,
+                  "[ha_write_blk]    addr = %08x\n",
+                  addr);
+        sim_debug(HA_TRACE, &ha_dev,
+                  "[ha_write_blk]    %08x = %08x\n",
+                  addr, pread_w(addr, BUS_PER));
+        sim_debug(HA_TRACE, &ha_dev,
+                  "[ha_write_blk]    %08x = %08x\n",
+                  addr + 4, pread_w(addr + 4, BUS_PER));
+
+        if (tc < 0) {
+            ha_state.ts[tc].rep.status = CIO_TIMEOUT;
+            sim_activate_abs(cio_unit, 1000);
+            return;
+        }
+
+        uptr = &ha_unit[tc];
+
+        if (!(uptr->flags & UNIT_ATT)) {
+            ha_state.ts[tc].rep.status = CIO_TIMEOUT;
+            sim_activate_abs(cio_unit, 1000);
+            return;
+        }
+
+        dev = (SCSI_DEV *)uptr->up7;
+        block = pread_w(addr, BUS_PER);     /* Logical block we've been asked to write */
+        addr = pread_w(addr + 4, BUS_PER);  /* Dereference the pointer to the source */
+
+        switch(dev->devtype) {
+        case SCSI_DISK:
+            ha_write_block_disk(uptr, addr, tc, block);
+            break;
+        default:
+            sim_debug(HA_TRACE, &ha_dev,
+                      "[ha_write_blk] Cannot write block %d on target %d (not disk)\n",
+                      block, tc);
+            break;
+        }
+
+        ha_state.ts[tc].rep.status = CIO_SUCCESS;
+        sim_activate_abs(cio_unit, 1000);
         break;
     case HA_CNTRL:
         tc = FC_TC(subdev);

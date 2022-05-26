@@ -218,6 +218,10 @@ void csr_write(uint32 pa, uint32 val, size_t size)
         break;
     case 0x44:
         CSRBIT(CSRPWRSPDN, val);
+        if (!val) {
+            /* Stop the simulator - power down */
+            stop_reason = STOP_POWER;
+        }
         break;
     case 0x48:
         CSRBIT(CSRFLPFST, val);

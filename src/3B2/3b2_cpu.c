@@ -1072,8 +1072,6 @@ t_stat cpu_reset(DEVICE *dptr)
 
         abort_context = C_NONE;
 
-        cpu_hist_size = 0;
-        cpu_hist_p = 0;
         cpu_in_wait = FALSE;
     }
 
